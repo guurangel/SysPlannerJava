@@ -81,11 +81,6 @@
             <artifactId>ojdbc11</artifactId>
             <version>23.3.0.23.09</version>
         </dependency>
-        <dependency>
-            <groupId>me.paulschwarz</groupId>
-            <artifactId>spring-dotenv</artifactId>
-            <version>3.0.0</version>
-        </dependency>
         <!-- RabbitMQ -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
