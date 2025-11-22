@@ -1,19 +1,25 @@
 package com.sys.sysplanner.service;
 
 import com.sys.sysplanner.DTO.request.UsuarioCreateRequest;
+import com.sys.sysplanner.DTO.request.UsuarioFilterRequest;
 import com.sys.sysplanner.DTO.request.UsuarioUpdateRequest;
 import com.sys.sysplanner.DTO.request.UsuarioAdminUpdateRequest;
 import com.sys.sysplanner.DTO.response.UsuarioResponse;
+import com.sys.sysplanner.config.RabbitMQConfig;
 import com.sys.sysplanner.domain.Usuario;
 import com.sys.sysplanner.domain.enums.*;
 import com.sys.sysplanner.mapper.UsuarioMapper;
+import com.sys.sysplanner.mq.EmailMessage;
 import com.sys.sysplanner.repository.UsuarioRepository;
+import com.sys.sysplanner.specifications.UsuarioSpecifications;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
@@ -29,7 +35,7 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final UsuarioMapper usuarioMapper;
     private final PasswordEncoder passwordEncoder;
-
+    private final RabbitTemplate rabbitTemplate;
 
     // GET ALL
     @Cacheable(value = "usuarios")
@@ -60,9 +66,21 @@ public class UsuarioService {
         // Criptografar senha
         usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
 
+        // Salvar no banco
         Usuario saved = usuarioRepository.save(usuario);
+
+        // Enviar e-mail assíncrono via RabbitMQ
+        EmailMessage emailMessage = new EmailMessage(
+                saved.getEmail(),
+                "Bem-vindo ao SysPlanner!",
+                "<p>Olá " + saved.getNome() + ",</p>" +
+                        "<p>Obrigado por se registrar no SysPlanner!</p>"
+        );
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EMAIL_QUEUE, emailMessage);
+
         return usuarioMapper.toResponse(saved);
     }
+
 
     // GET BY ID
     public UsuarioResponse findById(Long id) {
@@ -180,5 +198,13 @@ public class UsuarioService {
                 .stream()
                 .map(usuarioMapper::toResponse)
                 .toList();
+    }
+
+    // GET FILTRADO COM PAGINAÇÃO
+    @Cacheable(value = "usuarios")
+    public Page<UsuarioResponse> findAllFiltered(UsuarioFilterRequest filtro, Pageable pageable) {
+        Specification<Usuario> spec = UsuarioSpecifications.filtrar(filtro);
+        return usuarioRepository.findAll(spec, pageable)
+                .map(usuarioMapper::toResponse);
     }
 }
