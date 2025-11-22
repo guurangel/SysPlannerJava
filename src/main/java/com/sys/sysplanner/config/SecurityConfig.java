@@ -51,7 +51,8 @@ public class SecurityConfig {
                         // -------------------------------
                         // PÁGINAS ADMIN
                         // -------------------------------
-                        .requestMatchers("/gerenciar/usuarios/**")
+                        .requestMatchers("/gerenciar/usuarios/**", "admin/**")
+
                         .hasRole("ADMIN")
 
                         // -------------------------------
