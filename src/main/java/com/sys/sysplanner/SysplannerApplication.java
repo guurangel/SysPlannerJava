@@ -9,7 +9,8 @@ import org.springframework.cache.annotation.EnableCaching;
 public class SysplannerApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(SysplannerApplication.class, args);
+        Dotenv dotenv = Dotenv.load(); // carrega o .env
+        SpringApplication.run(SysplannerApplication.class, args);
 	}
 
 }

@@ -1,8 +1,14 @@
 package com.sys.sysplanner.controller.view;
 
 import com.sys.sysplanner.DTO.request.UsuarioAdminUpdateRequest;
+import com.sys.sysplanner.DTO.request.UsuarioFilterRequest;
+import com.sys.sysplanner.DTO.response.UsuarioResponse;
 import com.sys.sysplanner.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -15,8 +21,32 @@ public class GerenciarUsuarioControllerView {
     private final UsuarioService usuarioService;
 
     @GetMapping("/usuarios")
-    public String listarUsuarios(Model model) {
-        model.addAttribute("usuarios", usuarioService.findAllList());
+    public String listarUsuarios(
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String cpf,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String cidade,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Model model) {
+
+        UsuarioFilterRequest filtro = new UsuarioFilterRequest();
+        filtro.setNome(nome);
+        filtro.setEmail(email);
+        filtro.setCpf(cpf);
+        filtro.setEstado(estado);
+        filtro.setCidade(cidade);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("nome").ascending());
+
+        Page<UsuarioResponse> usuariosPage = usuarioService.findAllFiltered(filtro, pageable);
+
+        model.addAttribute("usuarios", usuariosPage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", usuariosPage.getTotalPages());
+        model.addAttribute("filtro", filtro);
+
         return "gerenciar/usuarios";
     }
 
